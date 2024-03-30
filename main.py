@@ -9,4 +9,5 @@ def main():
     lexer_ui.show()
     sys.exit(app.exec())
 
+
 main()

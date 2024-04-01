@@ -11,7 +11,7 @@ class LexerUI(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Lexer UI')
+        self.setWindowTitle('Lexer')
         self.setGeometry(100, 100, 800, 600)
 
         self.applyBackground('fondo_automata.jpg')

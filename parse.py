@@ -139,42 +139,55 @@ class Parser:
     
     def parse_statements(self, block_node):
         """Add parsed statements into the statements list of the passed block node."""
-        current_statements = block_node['statements']
-        if self.current_token()['type'] == 'IDENTIFIER':
-            current_statements.append(self.parse_expression())
-        elif self.current_token()['type'] == 'KEYWORD':
-            if self.current_token()['value'] in ['si', 'mientras']:
-                if self.current_token()['value'] == 'si':
-                    current_statements.append(self.parse_if_statement())
+        while self.current_token() and self.current_token()['type'] != 'SIGN' or self.current_token()['value'] != '}':
+            if self.current_token()['type'] == 'IDENTIFIER':
+                block_node['statements'].append(self.parse_expression())
+            elif self.current_token()['type'] == 'KEYWORD':
+                if self.current_token()['value'] in ['si', 'mientras']:
+                    if self.current_token()['value'] == 'si':
+                        block_node['statements'].append(self.parse_if_statement())
+                    else:
+                        block_node['statements'].append(self.parse_while_loop())
+                elif self.current_token()['value'] in ['entero', 'decimal', 'booleano', 'cadena']:
+                    block_node['statements'].append(self.parse_variable_declaration())
                 else:
-                    current_statements.append(self.parse_while_loop())
-            elif self.current_token()['value'] in ['entero', 'decimal', 'booleano', 'cadena']:
-                current_statements.append(self.parse_variable_declaration())
+                    self.raise_error(f"Unexpected keyword {self.current_token()['value']} in statement block.")
             else:
-                self.raise_error(f"Unexpected keyword {self.current_token()['value']} in statement block.")
-        else:
-            self.next_token()  # Skip unknown tokens or handle errors
+                self.next_token()  # Skip unknown tokens or handle errors
     
     def parse_if_statement(self):
-        node = {'type': 'if_statement', 'statements': [], 'data': {}}
+        node = {'type': 'if_statement', 'if_block': {'statements': []}, 'else_block': {'statements': []}}
+
         if self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'si':
-            self.next_token()
+            self.next_token()  # Move past 'si'
             if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '(':
                 self.next_token()
-                node['data']['condition'] = self.parse_condition()
+                condition = self.parse_condition()
+                node['if_block']['condition'] = condition
                 if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == ')':
                     self.next_token()
                     if self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'entonces':
                         self.next_token()
                         if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '{':
                             self.next_token()
-                            while self.current_token() and (self.current_token()['type'] != 'SIGN' or self.current_token()['value'] != '}'):
-                                self.parse_statements(node)
+                            self.parse_statements(node['if_block'])
                             if self.current_token() and self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '}':
                                 self.next_token()
+                                # Check for 'sino'
+                                if self.current_token() and self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'sino':
+                                    self.next_token()
+                                    if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '{':
+                                        self.next_token()
+                                        self.parse_statements(node['else_block'])
+                                        if self.current_token() and self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '}':
+                                            self.next_token()
+                                        else:
+                                            self.raise_error("Expected '}' at the end of else block.")
+                                    else:
+                                        self.raise_error("Expected '{' after 'sino'.")
                                 return node
                             else:
-                                self.raise_error("Expected '}' at the end of the statements block.")
+                                self.raise_error("Expected '}' at the end of if block.")
                         else:
                             self.raise_error("Expected '{' after 'entonces'.")
                     else:
@@ -184,6 +197,7 @@ class Parser:
             else:
                 self.raise_error("Expected '(' after 'si'.")
         return node
+
 
     def parse_while_loop(self):
         node = {'type': 'while_loop', 'statements': [], 'data': {}}
@@ -198,8 +212,7 @@ class Parser:
                         self.next_token()
                         if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '{':
                             self.next_token()
-                            while self.current_token() and (self.current_token()['type'] != 'SIGN' or self.current_token()['value'] != '}'):
-                                self.parse_statements(node)
+                            self.parse_statements(node)
                             if self.current_token() and self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '}':
                                 self.next_token()
                                 return node

@@ -10,7 +10,7 @@ mientras ( contador < 10 ) hacer {
     contador = contador + 1;
     si ( contador == 1 ) entonces {
         contador = contador - 1;
-    }
+    
     entero contador3 = 50;
 }
 
@@ -23,13 +23,7 @@ si ( flag == 10 ) entonces {
 }
 
 entero funcion(booleano flag, entero a, decimal q) {
-    contador = 1;
-    si ( flag == 10 ) entonces {
-        mientras ( contador >= 5 ) hacer {
-            contador = contador - 1;
-        }
-        booleano flag = verdadero;
-    }
+    contador = 2 * 5 + 9 - 1;
 }
 """
 

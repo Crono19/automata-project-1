@@ -39,6 +39,7 @@ class Parser:
                     results.append(self.parse_function_declaration())
                 else:
                     results.append(self.parse_variable_declaration())
+
             elif self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'si':
                 results.append(self.parse_if_statement())
             elif self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'mientras':
@@ -93,17 +94,18 @@ class Parser:
         node = {'type': 'variable_declaration', 'data': {}}
         if self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['entero', 'decimal', 'booleano', 'cadena']:
             node['data']['type'] = self.current_token()['value']
-            self.next_token()  # move to IDENTIFIER
+            self.next_token()  # Move to IDENTIFIER
             if self.current_token()['type'] == 'IDENTIFIER':
                 node['data']['identifier'] = self.current_token()['value']
-                self.next_token()  # move to OPERATOR(=)
+                self.next_token()  # Move to OPERATOR(=)
                 if self.current_token()['type'] == 'OPERATOR' and self.current_token()['value'] == '=':
-                    self.next_token()  # move to VALUE
-                    if (self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['verdadero', 'falso']) or (self.current_token()['type'] in ['NUMBER', 'IDENTIFIER']):
+                    self.next_token()  # Move to VALUE
+                    if (self.current_token()['type'] in ['STRING', 'NUMBER', 'IDENTIFIER']) or (self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['verdadero', 'falso']):
                         node['data']['value'] = self.current_token()['value']
-                        self.next_token()  # move to SIGN(;)
+                        self.next_token()  # Move to expected semicolon
+                        print(self.current_token())
                         if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == ';':
-                            self.next_token()  # Ensure next parsing starts at correct position
+                            self.next_token()  # Prepare for the next statement
                             return node
                         else:
                             self.raise_error("Missing semicolon in variable declaration.")
@@ -113,6 +115,8 @@ class Parser:
                     self.raise_error("Missing '=' in variable declaration.")
             else:
                 self.raise_error("Invalid or missing identifier in variable declaration.")
+        else:
+            self.raise_error("Unexpected keyword; expected 'entero', 'decimal', 'booleano', or 'cadena'")
         return node
     
     def parse_condition(self):
@@ -124,7 +128,7 @@ class Parser:
             if self.current_token()['type'] == 'OPERATOR' and self.current_token()['value'] in ['==', '<=', '>=', '<', '>']:
                 node['data']['operation'] = self.current_token()['value']
                 self.next_token()
-                if self.current_token()['type'] in ['NUMBER', 'IDENTIFIER']:
+                if (self.current_token()['type'] in ['NUMBER', 'IDENTIFIER']) or (self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['verdadero', 'falso']):
                     self.next_token()
                     node['data']['comparison'] = self.current_token()['value']
                     return node
@@ -138,8 +142,8 @@ class Parser:
         return node
     
     def parse_statements(self, block_node):
-        """Add parsed statements into the statements list of the passed block node."""
-        while self.current_token() and self.current_token()['type'] != 'SIGN' or self.current_token()['value'] != '}':
+        """Parse statements until a closing brace '}' or end of tokens."""
+        while self.current_token() and (self.current_token()['type'] != 'SIGN' or self.current_token()['value'] != '}'):
             if self.current_token()['type'] == 'IDENTIFIER':
                 block_node['statements'].append(self.parse_expression())
             elif self.current_token()['type'] == 'KEYWORD':
@@ -154,6 +158,10 @@ class Parser:
                     self.raise_error(f"Unexpected keyword {self.current_token()['value']} in statement block.")
             else:
                 self.next_token()  # Skip unknown tokens or handle errors
+
+        # After processing all statements, ensure the loop exited because of '}' and not because of a missing brace.
+        if not self.current_token() or self.current_token()['type'] != 'SIGN' or self.current_token()['value'] != '}':
+            self.raise_error("Expected '}' at the end of the block.")
     
     def parse_if_statement(self):
         node = {'type': 'if_statement', 'if_block': {'statements': []}, 'else_block': {'statements': []}}

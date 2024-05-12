@@ -4,21 +4,23 @@ from lexer import Lexer
 
 # Example code text
 code_text = """
-entero contador = 0;
+cadena string = "hi world";
 entero contador2 = 1;
-mientras ( contador < 10 ) hacer {
+mientras ( contador == 1 ) hacer {
     contador = contador + 1;
     si ( contador == 1 ) entonces {
         contador = contador - 1;
-    
+    }
     entero contador3 = 50;
 }
 
+cadena string = "hi world";
 booleano flag = verdadero;
-si ( flag == 10 ) entonces {
+si ( flag == falso ) entonces {
     mientras ( contador >= 5 ) hacer {
         contador = contador - 1;
     }
+    cadena string = "hi world";
     booleano flag = verdadero;
 }
 
@@ -38,7 +40,6 @@ parser = Parser(tokens)
 
 # Parse the tokens
 try:
-    parser.parse()
     print("Parsing completed successfully.")
 except SyntaxError as e:
     print("Error during parsing:")

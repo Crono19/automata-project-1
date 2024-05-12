@@ -115,6 +115,12 @@ class Lexer:
         current_char = self.next_char()
 
         while current_char is not None:
+            if current_char == '"':  # Start of string literal
+                string_literal = self.get_string_literal()
+                self.add_token_in_order('STRING', string_literal)
+                current_char = self.next_char()  # Update current_char to continue after the string
+                continue
+
             if current_char.isspace():
                 current_char = self.next_char()
                 continue
@@ -147,6 +153,16 @@ class Lexer:
             else:
                 self.add_token_in_order('ERROR', current_char)
 
-            current_char = self.next_char()
+            current_char = self.next_char()  # Move to the next character
 
         return self.tokens
+
+    def get_string_literal(self):
+        string_value = ''
+        while self.peek() != '"':
+            if self.peek() is None:
+                raise Exception("String literal not closed")
+            string_value += self.peek()
+            self.next_char()
+        self.next_char()  # Skip the closing double quote
+        return string_value

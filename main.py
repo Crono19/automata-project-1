@@ -21,6 +21,16 @@ si ( flag == 10 ) entonces {
     }
     booleano flag = verdadero;
 }
+
+entero funcion(booleano flag, entero a, decimal q) {
+    contador = 1;
+    si ( flag == 10 ) entonces {
+        mientras ( contador >= 5 ) hacer {
+            contador = contador - 1;
+        }
+        booleano flag = verdadero;
+    }
+}
 """
 
 # Initialize the lexer with the code text

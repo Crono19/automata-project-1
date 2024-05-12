@@ -11,6 +11,16 @@ class Parser:
     def next_token(self):
         self.current_token_index += 1
         return self.current_token()
+    
+    def peek_token(self):
+        if self.current_token_index + 1 < len(self.tokens):
+            return self.tokens[self.current_token_index + 1]
+        return None
+
+    def peek_next_token(self):
+        if self.current_token_index + 2 < len(self.tokens):
+            return self.tokens[self.current_token_index + 2]
+        return None
 
     def raise_error(self, message):
         token = self.current_token()
@@ -24,7 +34,11 @@ class Parser:
         results = []
         while self.current_token() is not None:
             if self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['entero', 'decimal', 'booleano', 'cadena']:
-                results.append(self.parse_variable_declaration())
+                # Peek to see if next token is an identifier followed by `(`, indicates a function declaration
+                if self.peek_token() and self.peek_token()['type'] == 'IDENTIFIER' and self.peek_next_token() and self.peek_next_token()['value'] == '(':
+                    results.append(self.parse_function_declaration())
+                else:
+                    results.append(self.parse_variable_declaration())
             elif self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'si':
                 results.append(self.parse_if_statement())
             elif self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] == 'mientras':
@@ -33,9 +47,7 @@ class Parser:
                 results.append(self.parse_expression())
             else:
                 self.raise_error(f"Unexpected token {self.current_token()['value']}")
-            # Next token is managed by individual parse functions
         return results
-    
 
     def parse_expression(self):
         if self.current_token()['type'] != 'IDENTIFIER':
@@ -202,3 +214,61 @@ class Parser:
             else:
                 self.raise_error("Expected '(' after 'mientras'.")
         return node
+    
+    def parse_function_declaration(self):
+        node = {'type': 'function_declaration', 'data': {}}
+        if self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['entero', 'decimal', 'booleano', 'cadena']:
+            node['data']['return_type'] = self.current_token()['value']
+            self.next_token()  # Move to function name
+            if self.current_token()['type'] == 'IDENTIFIER':
+                node['data']['function_name'] = self.current_token()['value']
+                self.next_token()  # Move to `(`
+
+                if self.current_token()['value'] == '(':
+                    self.next_token()  # Skip `(` and check for parameters or `)`
+                    node['data']['parameters'] = self.parse_parameters()
+                    
+                    if self.current_token()['value'] == ')':
+                        self.next_token()  # Skip `)` and move to `{`
+                        if self.current_token()['value'] == '{':
+                            self.next_token()  # Enter function body
+                            node['statements'] = []
+                            while self.current_token() and self.current_token()['value'] != '}':
+                                self.parse_statements(node)
+                            if self.current_token() and self.current_token()['value'] == '}':
+                                self.next_token()  # Close function body
+                                return node
+                            else:
+                                self.raise_error("Expected '}' at the end of function declaration.")
+                        else:
+                            self.raise_error("Expected '{' after function parameters.")
+                    else:
+                        self.raise_error("Expected ')' after function parameters.")
+                else:
+                    self.raise_error("Expected '(' after function name.")
+            else:
+                self.raise_error("Expected function name identifier after return type.")
+        return node
+
+    def parse_parameters(self):
+        parameters = []
+        if self.current_token()['value'] != ')':  # Check if there are any parameters
+            while True:
+                if self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['entero', 'decimal', 'booleano', 'cadena']:
+                    param_type = self.current_token()['value']
+                    self.next_token()
+                    if self.current_token()['type'] == 'IDENTIFIER':
+                        param_name = self.current_token()['value']
+                        parameters.append({'type': param_type, 'name': param_name})
+                        self.next_token()
+                        if self.current_token()['value'] == ',':
+                            self.next_token()  # Move past the comma for the next parameter
+                        elif self.current_token()['value'] == ')':
+                            break  # End of parameters list
+                        else:
+                            self.raise_error("Expected ',' or ')' in parameter list.")
+                    else:
+                        self.raise_error("Expected an identifier for parameter name.")
+                else:
+                    self.raise_error("Expected a type keyword in parameters.")
+        return parameters

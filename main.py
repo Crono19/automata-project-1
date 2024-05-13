@@ -4,18 +4,18 @@ from lexer import Lexer
 
 # Example code text
 code_text = """
-entero contador = 0;
+cadena contador = "kjljhsdf";
 entero contador2 = 1;
 mientras ( contador < 10 ) hacer {
     contador = contador + 1;
     si ( contador == 1 ) entonces {
         contador = contador - 1;
-    
+    }
     entero contador3 = 50;
 }
 
 booleano flag = verdadero;
-si ( flag == 10 ) entonces {
+si ( flag == 65 ) entonces {
     mientras ( contador >= 5 ) hacer {
         contador = contador - 1;
     }
@@ -24,6 +24,7 @@ si ( flag == 10 ) entonces {
 
 entero funcion(booleano flag, entero a, decimal q) {
     contador = 2 * 5 + 9 - 1;
+    retornar contador;
 }
 """
 
@@ -32,6 +33,9 @@ lexer = Lexer(code_text)
 
 # Generate tokens
 tokens = lexer.tokenize_in_order()
+
+for token in tokens:
+    print(token)
 
 # Assuming the Parser class has been appropriately defined and imported
 parser = Parser(tokens)

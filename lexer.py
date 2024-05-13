@@ -1,5 +1,5 @@
 key_words = ['entero', 'decimal', 'booleano', 'cadena', 'sino', 'si', 'mientras', 
-             'hacer', 'verdadero', 'falso', 'entonces']
+             'hacer', 'verdadero', 'falso', 'entonces', 'retornar']
 operators = ['+', '-', '*', '/', '%', '==', '<=', '>=', '<', '>', '=']
 signs = ['(', ')', '{', '}', '"', ';', ',']
 numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -127,7 +127,7 @@ class Lexer:
                 token_type = 'KEYWORD' if value in key_words else 'IDENTIFIER'
                 self.add_token_in_order(token_type, value)
 
-            elif current_char.isdigit():
+            elif current_char.isdigit() or current_char == ".":
                 start_pos = self.position - 1
                 while self.peek() and self.peek().isdigit():
                     self.next_char()

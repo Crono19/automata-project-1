@@ -2,6 +2,7 @@ class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.current_token_index = 0
+        self.errors = []
 
     def current_token(self):
         if self.current_token_index < len(self.tokens):
@@ -30,6 +31,23 @@ class Parser:
             error_msg = "Error: " + message
         raise SyntaxError(error_msg)
 
+    def add_error(self, message):
+        token = self.current_token()
+        if token:
+            self.errors.append({
+                'value': message,
+                'type': 'Error',
+                'line': token['line'],
+                'column': token['column']
+            })
+        else:
+            self.errors.append({
+                'value': message,
+                'type': 'Error',
+                'line': 'Unknown',
+                'column': 'Unknown'
+            })
+
     def parse(self):
         results = []
         while self.current_token() is not None:
@@ -48,11 +66,13 @@ class Parser:
             elif self.current_token()['type'] == 'IDENTIFIER':
                 results.append(self.parse_expression())
             else:
+                self.add_error(f"Unexpected token {self.current_token()['value']}")
                 self.raise_error(f"Unexpected token {self.current_token()['value']}")
         return results
 
     def parse_expression(self):
         if self.current_token()['type'] != 'IDENTIFIER':
+            self.add_error("Expected identifier at start of expression.")
             self.raise_error("Expected identifier at start of expression.")
 
         left = self.current_token()['value']
@@ -62,11 +82,13 @@ class Parser:
             self.next_token()
             expression = self.parse_complex_expression()
         else:
+            self.add_error("Expected '=' after identifier.")
             self.raise_error("Expected '=' after identifier.")
 
         if self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == ';':
             self.next_token()
         else:
+            self.add_error("Expected ';' at end of expression.")
             self.raise_error("Expected ';' at end of expression.")
 
         return {'type': 'assignment', 'identifier': left, 'expression': expression}
@@ -77,6 +99,7 @@ class Parser:
             elements.append(self.current_token()['value'])
             self.next_token()
         else:
+            self.add_error("Expected a number or identifier after '='.")
             self.raise_error("Expected a number or identifier after '='.")
 
         while self.current_token()['value'] in ['+', '-', '*', '/', '%']:
@@ -87,7 +110,14 @@ class Parser:
                 elements.append(self.current_token()['value'])
                 self.next_token()
             else:
+                self.add_error(f"Expected a number or identifier after operator '{operator}'.")
                 self.raise_error(f"Expected a number or identifier after operator '{operator}'.")
+        
+        if (self.current_token()['value'] == ';' and self.current_token()['type'] == 'SIGN'):
+            return elements    
+        else:
+            self.add_error("Expected ';' at end of expression.")
+            self.raise_error("Expected ';' at end of expression.")
 
         return elements
 
@@ -110,12 +140,16 @@ class Parser:
                             self.next_token()  # Ensure next parsing starts at correct position
                             return node
                         else:
+                            self.add_error("Missing semicolon in variable declaration.")
                             self.raise_error("Missing semicolon in variable declaration.")
                     else:
+                        self.add_error(f"Type mismatch: Expected a {var_type} value.")
                         self.raise_error(f"Type mismatch: Expected a {var_type} value.")
                 else:
+                    self.add_error("Missing '=' in variable declaration.")
                     self.raise_error("Missing '=' in variable declaration.")
             else:
+                self.add_error("Invalid or missing identifier in variable declaration.")
                 self.raise_error("Invalid or missing identifier in variable declaration.")
         return node
 
@@ -143,26 +177,29 @@ class Parser:
 
     
     def parse_condition(self):
-        node = {'type': 'condition', 'data': {}}
-        
-        if self.current_token()['type'] == 'IDENTIFIER':
-            node['data']['identifier'] = self.current_token()['value']
-            self.next_token()
-            if self.current_token()['type'] == 'OPERATOR' and self.current_token()['value'] in ['==', '<=', '>=', '<', '>']:
-                node['data']['operation'] = self.current_token()['value']
+            node = {'type': 'condition', 'data': {}}
+            
+            if self.current_token()['type'] == 'IDENTIFIER':
+                node['data']['identifier'] = self.current_token()['value']
                 self.next_token()
-                if (self.current_token()['type'] in ['NUMBER', 'IDENTIFIER']) or (self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['falso', 'verdadero']):
+                if self.current_token()['type'] == 'OPERATOR' and self.current_token()['value'] in ['==', '<=', '>=', '<', '>']:
+                    node['data']['operation'] = self.current_token()['value']
                     self.next_token()
-                    node['data']['comparison'] = self.current_token()['value']
-                    return node
+                    if (self.current_token()['type'] in ['NUMBER', 'IDENTIFIER']) or (self.current_token()['type'] == 'KEYWORD' and self.current_token()['value'] in ['falso', 'verdadero']):
+                        self.next_token()
+                        node['data']['comparison'] = self.current_token()['value']
+                        return node
+                    else:
+                        self.add_error("Missing comparison on the condition.")
+                        self.raise_error("Missing comparison on the condition.")
                 else:
-                    self.raise_error("Missing comparison on the condition.")
+                    self.add_error("Missing operator on the condition.")
+                    self.raise_error("Missing operator on the condition.")
             else:
-                self.raise_error("Missing operator on the condition.")
-        else:
-            self.raise_error("Missing identifier on the condition.")
+                self.add_error("Missing identifier on the condition.")
+                self.raise_error("Missing identifier on the condition.")
 
-        return node
+            return node
     
     def parse_statements(self, block_node):
         """Add parsed statements into the statements list of the passed block node."""
@@ -180,6 +217,7 @@ class Parser:
                 elif self.current_token()['value'] == 'retornar':
                     block_node['statements'].append(self.parse_return())
                 else:
+                    self.add_error(f"Unexpected keyword {self.current_token()['value']} in statement block.")
                     self.raise_error(f"Unexpected keyword {self.current_token()['value']} in statement block.")
             else:
                 self.next_token()  # Skip unknown tokens or handle errors
@@ -211,19 +249,26 @@ class Parser:
                                         if self.current_token() and self.current_token()['type'] == 'SIGN' and self.current_token()['value'] == '}':
                                             self.next_token()
                                         else:
+                                            self.add_error("Expected '}' at the end of else block.")
                                             self.raise_error("Expected '}' at the end of else block.")
                                     else:
+                                        self.add_error("Expected '{' after 'sino'.")
                                         self.raise_error("Expected '{' after 'sino'.")
                                 return node
                             else:
+                                self.add_error("Expected '}' at the end of if block.")
                                 self.raise_error("Expected '}' at the end of if block.")
                         else:
+                            self.add_error("Expected '{' after 'entonces'.")
                             self.raise_error("Expected '{' after 'entonces'.")
                     else:
+                        self.add_error("Expected 'entonces' after condition.")
                         self.raise_error("Expected 'entonces' after condition.")
                 else:
+                    self.add_error("Expected ')' after condition.")
                     self.raise_error("Expected ')' after condition.")
             else:
+                self.add_error("Expected '(' after 'si'.")
                 self.raise_error("Expected '(' after 'si'.")
         return node
 
@@ -246,14 +291,19 @@ class Parser:
                                 self.next_token()
                                 return node
                             else:
+                                self.add_error("Expected '}' at the end of statements block.")
                                 self.raise_error("Expected '}' at the end of statements block.")
                         else:
+                            self.add_error("Expected '{' after 'hacer'.")
                             self.raise_error("Expected '{' after 'hacer'.")
                     else:
+                        self.add_error("Expected 'hacer' after condition.")
                         self.raise_error("Expected 'hacer' after condition.")
                 else:
+                    self.add_error("Expected ')' after condition.")
                     self.raise_error("Expected ')' after condition.")
             else:
+                self.add_error("Expected '(' after 'mientras'.")
                 self.raise_error("Expected '(' after 'mientras'.")
         return node
     
@@ -281,14 +331,19 @@ class Parser:
                                 self.next_token()  # Close function body
                                 return node
                             else:
+                                self.add_error("Expected '}' at the end of function declaration.")
                                 self.raise_error("Expected '}' at the end of function declaration.")
                         else:
+                            self.add_error("Expected '{' after function parameters.")
                             self.raise_error("Expected '{' after function parameters.")
                     else:
+                        self.add_error("Expected ')' after function parameters.")
                         self.raise_error("Expected ')' after function parameters.")
                 else:
+                    self.add_error("Expected '(' after function name.")
                     self.raise_error("Expected '(' after function name.")
             else:
+                self.add_error("Expected function name identifier after return type.")
                 self.raise_error("Expected function name identifier after return type.")
         return node
 
@@ -308,10 +363,13 @@ class Parser:
                         elif self.current_token()['value'] == ')':
                             break  # End of parameters list
                         else:
+                            self.add_error("Expected ',' or ')' in parameter list.")
                             self.raise_error("Expected ',' or ')' in parameter list.")
                     else:
+                        self.add_error("Expected an identifier for parameter name.")
                         self.raise_error("Expected an identifier for parameter name.")
                 else:
+                    self.add_error("Expected a type keyword in parameters.")
                     self.raise_error("Expected a type keyword in parameters.")
         return parameters
     
@@ -325,9 +383,11 @@ class Parser:
                 self.next_token()
                 return node
             else:
+                self.add_error("Missing semicolon in function return.")
                 self.raise_error("Missing semicolon in function return.")
         else:
+            self.add_error("Expected identifier after return.")
             self.raise_error("Expected identifier after return.")
                 
-        return node    
+        return node
     

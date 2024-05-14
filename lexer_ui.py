@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import QMainWindow, QFileDialog, QTextEdit, QPushButton, QVBoxLayout, QWidget, QMessageBox, \
     QTableWidget, QTableWidgetItem, QLabel
 from lexer import Lexer
+from parse import Parser
+from lexer_in_order import LexerInOrder
 from PyQt6.QtGui import QFont, QPixmap, QPalette, QBrush
 from PyQt6.QtCore import Qt
 
@@ -11,9 +13,8 @@ class LexerUI(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle('Lexer')
+        self.setWindowTitle('Lexer and Parser')
         self.setGeometry(100, 100, 800, 600)
-
         self.applyBackground('fondo_automata.jpg')
 
         font = QFont('Arial Narrow', 10)
@@ -22,11 +23,10 @@ class LexerUI(QMainWindow):
         # Main layout
         main_layout = QVBoxLayout()
 
-        # Logazo bro
+        # Logo
         logo = QLabel(self)
         pixmap = QPixmap('logo.png')
-        logo.setPixmap(
-            pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio))
+        logo.setPixmap(pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio))
         main_layout.addWidget(logo, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # File open button
@@ -45,17 +45,23 @@ class LexerUI(QMainWindow):
         self.btnProcess.clicked.connect(self.processText)
         main_layout.addWidget(self.btnProcess)
 
-        # Layout for tokens table
+        # Tokens table
         self.tokensTable = QTableWidget()
         self.tokensTable.setColumnCount(3)
         self.tokensTable.setHorizontalHeaderLabels(['Token', 'Type', 'Count'])
         main_layout.addWidget(self.tokensTable)
 
-        # Layout for errors table
+        # Lexer errors table
         self.errorsTable = QTableWidget()
         self.errorsTable.setColumnCount(4)
         self.errorsTable.setHorizontalHeaderLabels(['Error', 'Type', 'Line', 'Column'])
         main_layout.addWidget(self.errorsTable)
+
+        # Parsing errors table
+        self.parsingErrorsTable = QTableWidget()
+        self.parsingErrorsTable.setColumnCount(4)
+        self.parsingErrorsTable.setHorizontalHeaderLabels(['Error', 'Type', 'Line', 'Column'])
+        main_layout.addWidget(self.parsingErrorsTable)
 
         # Set the layout for the central widget
         container = QWidget()
@@ -96,9 +102,26 @@ class LexerUI(QMainWindow):
         text_content = self.textArea.toPlainText()
         if text_content:
             lexer = Lexer(text_content)
+            lexer_in_order = LexerInOrder(text_content)
+
             tokens, token_counts = lexer.tokenize()
+            tokens_in_order = lexer_in_order.tokenize_in_order()
+
+            for token in tokens_in_order:
+                print(token)
+
+            parser = Parser(tokens_in_order)
+            
             self.displayTokenResults(tokens, token_counts)
             self.displayErrorResults(lexer.errors)
+            try:
+                parser.parse()
+                print("Parsing completed successfully.")
+            except SyntaxError as e:
+                self.displayParsingErrorResults(parser.errors)
+                print("Error during parsing:")
+                print(parser.errors)
+                print(e)
         else:
             QMessageBox.warning(self, 'Warning', 'Please select a text file and preview the content first.')
 
@@ -140,3 +163,18 @@ class LexerUI(QMainWindow):
         self.tableWidget.setItem(row_position, 2, QTableWidgetItem(str(details.get('count', 'N/A'))))
         self.tableWidget.setItem(row_position, 3, QTableWidgetItem(str(details['line'])))
         self.tableWidget.setItem(row_position, 4, QTableWidgetItem(str(details['column'])))
+
+    def displayParsingErrorResults(self, parsing_errors):
+        # Clear the parsing errors table
+        self.parsingErrorsTable.setRowCount(0)
+
+        # Insert parsing error data into the table
+        for error in parsing_errors:
+            row_position = self.parsingErrorsTable.rowCount()
+            self.parsingErrorsTable.insertRow(row_position)
+            self.parsingErrorsTable.setItem(row_position, 0, QTableWidgetItem(error['value']))
+            self.parsingErrorsTable.setItem(row_position, 1, QTableWidgetItem(error['type']))
+            self.parsingErrorsTable.setItem(row_position, 2, QTableWidgetItem(str(error['line'])))
+            self.parsingErrorsTable.setItem(row_position, 3, QTableWidgetItem(str(error['column'])))
+
+        self.parsingErrorsTable.resizeColumnsToContents()

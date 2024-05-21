@@ -364,6 +364,9 @@ class Parser:
                     param_type = self.current_token()['value']
                     self.next_token()
                     if self.current_token()['type'] == 'IDENTIFIER':
+                        identifier = self.current_token()['value']
+                        self.current_token()['value'] = identifier
+                        self.declared_variables.add(identifier)  # Add the variable to declared variables set
                         param_name = self.current_token()['value']
                         parameters.append({'type': param_type, 'name': param_name})
                         self.next_token()

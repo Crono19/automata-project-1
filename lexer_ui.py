@@ -26,12 +26,20 @@ class LexerUI(QMainWindow):
         # Logo
         logo = QLabel(self)
         pixmap = QPixmap('logo.png')
-        logo.setPixmap(pixmap.scaled(200, 200, Qt.AspectRatioMode.KeepAspectRatio))
+        logo.setPixmap(pixmap.scaled(400, 200, Qt.AspectRatioMode.KeepAspectRatio))
         main_layout.addWidget(logo, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # File open button
         self.btnOpen = QPushButton('Open .txt File')
         self.styleButton(self.btnOpen)
+        self.btnOpen.setStyleSheet("""
+            background-color: #494949;
+            border-radius: 2px;
+            font-family: 'Century Gothic Bold';
+            font-size: 15px;
+            color: white;
+            padding: 10px;
+        """)
         self.btnOpen.clicked.connect(self.openFileNameDialog)
         main_layout.addWidget(self.btnOpen)
 
@@ -42,6 +50,14 @@ class LexerUI(QMainWindow):
         # Process button
         self.btnProcess = QPushButton('Verify Text')
         self.styleButton(self.btnProcess)
+        self.btnProcess.setStyleSheet("""
+                    background-color: #494949;
+                    border-radius: 2px;
+                    font-family: 'Century Gothic Bold';
+                    font-size: 15px;
+                    color: white;
+                    padding: 10px;
+                """)
         self.btnProcess.clicked.connect(self.processText)
         main_layout.addWidget(self.btnProcess)
 

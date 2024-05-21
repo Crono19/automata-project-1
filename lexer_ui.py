@@ -128,6 +128,7 @@ class LexerUI(QMainWindow):
 
             parser = Parser(tokens_in_order)
             
+            self.parsingErrorsTable.setRowCount(0)
             self.displayTokenResults(tokens, token_counts)
             self.displayErrorResults(lexer.errors)
             try:
@@ -181,9 +182,9 @@ class LexerUI(QMainWindow):
         self.tableWidget.setItem(row_position, 4, QTableWidgetItem(str(details['column'])))
 
     def displayParsingErrorResults(self, parsing_errors):
-        # Clear the parsing errors table
+        # Clear the parsing errors table as the first step
         self.parsingErrorsTable.setRowCount(0)
-
+        
         # Insert parsing error data into the table
         for error in parsing_errors:
             row_position = self.parsingErrorsTable.rowCount()
@@ -193,4 +194,5 @@ class LexerUI(QMainWindow):
             self.parsingErrorsTable.setItem(row_position, 2, QTableWidgetItem(str(error['line'])))
             self.parsingErrorsTable.setItem(row_position, 3, QTableWidgetItem(str(error['column'])))
 
+        # Resize columns to fit the content
         self.parsingErrorsTable.resizeColumnsToContents()

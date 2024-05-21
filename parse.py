@@ -3,6 +3,7 @@ class Parser:
         self.tokens = tokens
         self.current_token_index = 0
         self.errors = []
+        self.declared_variables = set()
 
     def current_token(self):
         if self.current_token_index < len(self.tokens):
@@ -76,6 +77,12 @@ class Parser:
             self.raise_error("Expected identifier at start of expression.")
 
         left = self.current_token()['value']
+
+        # Check if the variable has been declared
+        if left not in self.declared_variables:
+            self.add_error(f"Variable '{left}' not declared.")
+            self.raise_error(f"Variable '{left}' not declared.")
+
         self.next_token()
 
         if self.current_token()['type'] == 'OPERATOR' and self.current_token()['value'] == '=':
@@ -128,7 +135,9 @@ class Parser:
             node['data']['type'] = var_type
             self.next_token()  # move to IDENTIFIER
             if self.current_token()['type'] == 'IDENTIFIER':
-                node['data']['identifier'] = self.current_token()['value']
+                identifier = self.current_token()['value']
+                node['data']['identifier'] = identifier
+                self.declared_variables.add(identifier)  # Add the variable to declared variables set
                 self.next_token()  # move to OPERATOR(=)
                 if self.current_token()['type'] == 'OPERATOR' and self.current_token()['value'] == '=':
                     self.next_token()  # move to VALUE
